@@ -1,0 +1,98 @@
+/**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ * @flow
+ */
+
+import React, { Component } from 'react';
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  WebView,
+  TouchableOpacity,
+  BackHandler,
+} from 'react-native';
+import Io from 'socket.io-client';
+
+const WEBVIEW_REF = "WEBVIEW_REF";
+type Props = {};
+export default class App extends Component<Props> {
+  constructor(props) {
+    super(props);
+    this.state = { canGoBack: false };
+    this.socket = Io('http://192.168.0.101:4040');
+    this.socket.on('connect', (socket) => {
+      this.socket.emit('send-message',{
+        userName: 'baki', 
+        roomId: 22,
+        text: 'cao svima',
+      });
+      console.log('sadasddas')
+    })
+    this.socket.on('message', (data) => {
+      console.log('server odgovorio ', data);
+    })
+  //   this.socket.on('blabla', (res) => {
+  //   this.setState({canGoBack: res});
+  // })
+  }
+
+  componentDidMount() {
+    this.socket.emit('blabla', {
+      name: 'baki',
+    })
+  }
+
+  componentWillUnmount() {
+    BackHandler.removeEventListener('hardwareBackPress', this.handleBack)
+  }
+
+  handleBack = () => {
+    if (this.state.canGoBack) {
+      this.onBack();
+      return true; 
+    } else {
+      return false;
+    }
+  }
+
+  onNavigationStateChange(navState){
+    console.log('url:', navState)
+    this.setState({
+      canGoBack: navState.canGoBack
+    });
+  }
+  onBack = () => {
+    this.refs[WEBVIEW_REF].goBack();
+  }
+
+  render() {
+    console.log(this.state.canGoBack);
+    return (
+      <View style={{flex: 1}}> 
+        <Text> BLACKOOOOO </Text>
+      </View>
+    );
+  }
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5FCFF',
+  },
+  welcome: {
+    fontSize: 20,
+    textAlign: 'center',
+    margin: 10,
+  },
+  instructions: {
+    textAlign: 'center',
+    color: '#333333',
+    marginBottom: 5,
+  },
+});
