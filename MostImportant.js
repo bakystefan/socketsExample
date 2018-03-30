@@ -15,25 +15,22 @@ type Props = {};
 export default class MostImportant extends Component<Props> {
   constructor(props) {
     super(props);
-    this.socket = Io('http://192.168.0.101:4040');
-    this.socket.on('connect', (socket) => {
-      this.socket.emit('join', `MESSAGE_FOR_5aba57631b03771eaad06f63`);
-    })
-    this.socket.on('message', (data) => {
-      console.log('server odgovorio ', data);
-    })
   }
-
-  componentDidMount() {
-    this.socket.emit(`MESSAGE_FOR_5aba57631b03771eaad06f63`, {
-      name: 'bakilisko',
-    })
-  }
-
   render() {
     return (
       <View style={{flex: 1}}> 
-        <Text> BLACKOOOOOSLAV </Text>
+        <Text> BLACKOOOOOSLAV</Text>
+        <TouchableOpacity>
+          <View
+            style={{ height: 40, width: 200, justifyContent: 'center', alignItems: 'center' }}
+          >
+            <Text
+              style={{ fontSize: 30 }}
+            >
+              AJDE
+            </Text>
+          </View>
+        </TouchableOpacity>
       </View>
     );
   }
