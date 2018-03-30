@@ -31,12 +31,12 @@ export default class NoImportant extends Component {
       );
     })
     this.socket.on('message', (data) => {
-      if (data.userId === this.state.userId) {
+      if (data.userId !== this.state.userId) {
         const messageConvert = {
           createdAt: new Date(parseInt(data.date)),
           text: data.text,
           user: {
-            _id: userIdForMessage,
+            _id: 2,
           },
           _id: data.messId
         }
