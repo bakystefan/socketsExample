@@ -5,22 +5,28 @@ import {
   Text,
   View,
   WebView,
-  TouchableOpacity,
   BackHandler,
-  Dimensions
+  Dimensions,
+  TextInput,
+  TouchableOpacity,
+  Image
 } from 'react-native';
 import uuidv1 from 'uuid/v1';
 import { GiftedChat } from 'react-native-gifted-chat'
 import Io from 'socket.io-client';
+import ImagePicker from 'react-native-image-picker';
+import RNFetchBlob from 'react-native-fetch-blob'
 
 export default class NoImportant extends Component {
   constructor(props) {
     super(props);
     this.state = {
       message: [],
-      userId: 'baki'
+      messager: "",
+      userId: 'baki',
+      avatarSource: null,
     }
-    this.socket = Io('http://192.168.0.101:4040');
+    this.socket = Io('http://192.168.0.103:4040');
     this.socket.on('connect', (socket) => {
       this.socket.emit('join', 
         {
@@ -46,6 +52,77 @@ export default class NoImportant extends Component {
       }
     })
   }
+  
+  selectPhotoTapped() {
+    const options = {
+      quality: 1.0,
+      maxWidth: 500,
+      maxHeight: 500,
+      storageOptions: {
+        skipBackup: true
+      }
+    };
+
+    ImagePicker.showImagePicker(options, (response) => {
+      console.log('Response = ', response);
+
+      if (response.didCancel) {
+        console.log('User cancelled photo picker');
+      }
+      else if (response.error) {
+        console.log('ImagePicker Error: ', response.error);
+      }
+      else if (response.customButton) {
+        console.log('User tapped custom button: ', response.customButton);
+      }
+      else {
+        const formData = new FormData();
+        console.log('ja sam sel file ', this.state.selectedFile);
+        formData.append('file', 'data:image/png;base64,' + response.data, response);
+        RNFetchBlob.fetch(
+          'POST',
+          `http://192.168.0.103:4040/api/images-upload`, 
+          {'Content-Type': 'multipart/form-data'},
+          [
+            {
+              name: 'file',
+              filename: response.fileName,
+              data: RNFetchBlob.wrap(response.uri),
+            }
+          ]
+        )
+        .then(result => result.json())
+        .then((data) => {
+          
+          const messageForReal = {
+            createdAt: new Date(),
+            text: '',
+            user: {
+              _id: 1,
+            },
+            _id: uuidv1(),
+            image: data.imageUrl
+          };
+
+          this.socket.emit(`send-message`, 
+            {
+              userId: this.state.userId,
+              roomIdRedis: `MESSAGE_FOR_5aba57631b03771eaad06f63`,
+              roomId: `5aba57631b03771eaad06f63`,
+              text: data.imageUrl,
+              messId: messageForReal._id,
+              image: messageForReal.image
+            }
+          )
+          this.setState(previusState => ({
+            messages: GiftedChat.append(previusState.messages, [messageForReal]),
+            messager: ''
+          }));
+        });
+      }
+    });
+  }
+  
   componentWillMount() {
     this.socket.emit(`get-messages`, 
       {
@@ -67,6 +144,7 @@ export default class NoImportant extends Component {
              user: { _id: userIdForMessage },
              text,
              _id: uuidv1(),
+             image: item.image
            }
         })
         this.setState(previusState => ({
@@ -77,21 +155,29 @@ export default class NoImportant extends Component {
   }
 
   onSend(messages = []) {
-    const { userId } = this.state;
-    let [message] = messages;
-    console.log('ja sam meesss', messages);
+    const { userId, messager } = this.state;
+    const messageForReal = {
+      createdAt: new Date(),
+      text: messager,
+      user: {
+        _id: 1,
+      },
+      _id: uuidv1(),
+    };
     this.socket.emit(`send-message`, 
       {
         userId,
         roomIdRedis: `MESSAGE_FOR_5aba57631b03771eaad06f63`,
         roomId: `5aba57631b03771eaad06f63`,
-        text: message.text,
-        messId: message._id
+        text: messageForReal.text,
+        messId: messageForReal._id,
+        image: messageForReal.image
       }
     )
     this.setState(previusState => ({
-      messages: GiftedChat.append(previusState.messages, messages),
-    }))
+      messages: GiftedChat.append(previusState.messages, [messageForReal]),
+      messager: ''
+    }));
   }
   render() {
     console.log('LET ', this.state.messages);
@@ -104,6 +190,39 @@ export default class NoImportant extends Component {
       onSend={messages => this.onSend(messages)}
       user={{
         _id: 1,
+      }}
+      renderInputToolbar={(yes) => {
+        return (
+          <View
+            style={{
+              width: Dimensions.get('window').width,
+              flexDirection: 'row'
+            }}
+          >
+          <TouchableOpacity
+            onPress={() => this.selectPhotoTapped()}
+          >
+           <View style={[styles.avatar, styles.avatarContainer, {}]}>
+            { this.state.avatarSource === null ? <Text>Select</Text> :
+              <Image style={styles.avatar} source={this.state.avatarSource} />
+            }
+          </View>
+          </TouchableOpacity>
+          <TextInput
+            autoCorrect={false}
+            style={{width: 160}}
+            value={this.state.messager}
+            multiline
+            onChangeText={(text) => this.setState({ messager: text })}
+            placeholder="Type your message here" 
+          />
+          <TouchableOpacity
+            onPress={() =>this.onSend()}
+          >
+           <Text>Send</Text>
+          </TouchableOpacity>
+          </View>
+        )
       }}
     />
     </View>
